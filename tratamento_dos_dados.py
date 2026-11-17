@@ -1,8 +1,8 @@
 import geopandas as gpd
 
-estacoes = gpd.read_file("ShapeFileMar-2026/Estação2026.shp")
-linhas = gpd.read_file("ShapeFileMar-2026/LinhaEstação2026.shp")
-municipios = gpd.read_file("ShapeFileMar-2026/Municipio2026.shp")
+estacoes = gpd.read_file("dados/ShapeFileMar-2026/Estação2026.shp")
+linhas = gpd.read_file("dados/ShapeFileMar-2026/LinhaEstação2026.shp")
+municipios = gpd.read_file("dados/ShapeFileMar-2026/Municipio2026.shp")
 
 print("=====================================================================================================================================================================")
 

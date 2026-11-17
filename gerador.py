@@ -26,9 +26,9 @@ def carregar_shp(caminho):
         return gdf.set_crs(epsg=4326)
     return gdf.to_crs(epsg=4326)
 
-estacoes = carregar_shp("ShapeFileMar-2026/Estação2026.shp")
-linhas = carregar_shp("ShapeFileMar-2026/LinhaEstação2026.shp")
-municipios = carregar_shp("ShapeFileMar-2026/Municipio2026.shp")
+estacoes = carregar_shp("dados/ShapeFileMar-2026/Estação2026.shp")
+linhas = carregar_shp("dados/ShapeFileMar-2026/LinhaEstação2026.shp")
+municipios = carregar_shp("dados/ShapeFileMar-2026/Municipio2026.shp")
 
 estacoes = estacoes[estacoes.geometry.notnull()].copy()
 estacoes["lat"] = estacoes.geometry.y
@@ -136,8 +136,8 @@ for u in range(len(df_vertices)):
             }
 
 df_arestas = pd.DataFrame(list(arestas_dict.values()))
-df_vertices.to_csv("vertices.csv", index=False)
-df_arestas.to_csv("arestas.csv", index=False)
+df_vertices.to_csv("dados/vertices.csv", index=False)
+df_arestas.to_csv("dados/arestas.csv", index=False)
 
 print("=== DATASET GERADO COM SUCESSO ===")
 print("Total de Vértices:", len(df_vertices))
