@@ -52,7 +52,8 @@ def encontrar_representante(pai, vertice):
     if vertice == pai[vertice]:
         return vertice
 
-    return encontrar_representante(pai, pai[vertice])
+    pai[vertice] = encontrar_representante(pai, pai[vertice])
+    return pai[vertice]
 
 def unir(pai, a, b):
     rep_a = encontrar_representante(pai, a)
