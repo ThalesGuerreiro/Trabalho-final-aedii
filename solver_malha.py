@@ -38,3 +38,25 @@ def encontrar_componentes(grafo):
             visitados.update(vis)
 
     return componentes
+
+#Funções do Union-Find
+
+def criar_conjuntos(vertices):
+    pai = {}
+    for i in vertices:
+            pai[i] = i
+    
+    return pai
+
+def encontrar_representante(pai, vertice):
+    if vertice == pai[vertice]:
+        return vertice
+
+    return encontrar_representante(pai, pai[vertice])
+
+def unir(pai, a, b):
+    rep_a = encontrar_representante(pai, a)
+    rep_b = encontrar_representante(pai, b)
+
+    if rep_a != rep_b:
+        pai[rep_b] = rep_a
