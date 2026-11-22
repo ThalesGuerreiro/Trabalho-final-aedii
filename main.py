@@ -2,24 +2,35 @@ import csv
 import os
 import solver_malha
 
+
 def carregar_dados(caminho_vertices="vertices.csv", caminho_arestas="arestas.csv"):
     if not os.path.exists(caminho_vertices) and os.path.exists("dados/vertices.csv"):
         caminho_vertices = "dados/vertices.csv"
         caminho_arestas = "dados/arestas.csv"
 
     vertices = {}
+
     with open(caminho_vertices, "r", encoding="utf-8", newline="") as arq_v:
         for linha in csv.DictReader(arq_v):
             id_v = int(linha["id"])
+
             vertices[id_v] = {
+                "codigo_original": linha["codigo_original"],
+                "codigo_muni": linha["codigo_muni"],
                 "nome": linha["nome"],
                 "uf": linha["uf"],
                 "lat": float(linha["lat"]),
                 "lon": float(linha["lon"]),
-                "tipo_no": linha.get("tipo_no", "estacao")
+                "eh_porto": bool(int(linha["eh_porto"])),
+                "demanda_ferr_agro_ton": float(linha["demanda_ferr_agro_ton"]),
+                "demanda_ferr_min_ton": float(linha["demanda_ferr_min_ton"]),
+                "demanda_rodo_agro_ciots": float(linha["demanda_rodo_agro_ciots"]),
+                "demanda_rodo_min_ciots": float(linha["demanda_rodo_min_ciots"]),
+                "tipo_no": linha["tipo_no"]
             }
 
     arestas = []
+
     with open(caminho_arestas, "r", encoding="utf-8", newline="") as arq_a:
         for linha in csv.DictReader(arq_a):
             arestas.append({
@@ -27,13 +38,14 @@ def carregar_dados(caminho_vertices="vertices.csv", caminho_arestas="arestas.csv
                 "destino": int(linha["destino"]),
                 "distancia_km": float(linha["distancia_km"]),
                 "custo_milhoes": float(linha["custo_milhoes"]),
-                "lucro_agro_milhoes": float(linha.get("lucro_agro_milhoes", 0.0)),
-                "lucro_minerio_milhoes": float(linha.get("lucro_minerio_milhoes", 0.0)),
-                "lucro_total_milhoes": float(linha.get("lucro_total_milhoes", 0.0)),
+                "lucro_agro_milhoes": float(linha["lucro_agro_milhoes"]),
+                "lucro_minerio_milhoes": float(linha["lucro_minerio_milhoes"]),
+                "lucro_total_milhoes": float(linha["lucro_total_milhoes"]),
                 "tipo": linha["tipo"]
             })
 
     return vertices, arestas
+
 
 def gerar_graficos(vertices, arestas, resultados_orcamentos, res_10bi_roi):
     try:
