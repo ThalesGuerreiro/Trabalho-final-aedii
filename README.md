@@ -10,6 +10,7 @@ As novas linhas foram propostas com base nos fluxos Origem-Destino (OD) agroindu
 
 ## Como Executar (Linux / Ubuntu 24.04)
 
+```bash
 # 1. Clonar o repositório
 git clone https://github.com/ThalesGuerreiro/Trabalho-final-aedii.git
 cd Trabalho-final-aedii
@@ -25,3 +26,4 @@ Saídas geradas
 Terminal: Tabelas de análise de sensibilidade por orçamento (R$ 2 bi a R$ 50 bi) e comparativo de estratégias (custo_minimo, roi_agro, roi_minerio e roi_total) no cenário de R$ 10 bilhões.
 
 Gráficos: grafico_orcamentos_3.png e mapa_expansao_10bi_3.png.
+```
