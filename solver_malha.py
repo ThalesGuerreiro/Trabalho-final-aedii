@@ -87,8 +87,4 @@ def kruskal(vertices, arestas):
             selecionadas.append(aresta)
             unir(pai, aresta["origem"], aresta["destino"])
 
-    for vertice in vertices:
-        representante = encontrar_representante(pai, vertice)
-        print(f"Vértice {vertice}: representante {representante}")
-
     return selecionadas
