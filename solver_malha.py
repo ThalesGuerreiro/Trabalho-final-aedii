@@ -62,7 +62,7 @@ def unir(pai, a, b):
     if rep_a != rep_b:
         pai[rep_b] = rep_a
 
-def kruskal(vertices, arestas):
+def kruskal(vertices, arestas, orcamento):
     candidatas = []
 
     for aresta in arestas:
@@ -72,6 +72,8 @@ def kruskal(vertices, arestas):
     candidatas.sort(key=lambda aresta: aresta["custo_milhoes"])
 
     pai = criar_conjuntos(vertices)
+
+    custo_total = 0
 
     for aresta in arestas:
         if aresta["tipo"] == "ativa":
@@ -84,7 +86,9 @@ def kruskal(vertices, arestas):
         rep_destino = encontrar_representante(pai, aresta["destino"])
 
         if rep_origem != rep_destino:
-            selecionadas.append(aresta)
-            unir(pai, aresta["origem"], aresta["destino"])
+            if custo_total + aresta["custo_milhoes"] <= orcamento:
+                selecionadas.append(aresta)
+                unir(pai, aresta["origem"], aresta["destino"])
+                custo_total += aresta["custo_milhoes"]
 
-    return selecionadas
+    return selecionadas, custo_total
