@@ -203,3 +203,151 @@ def analisar_municipios(vertices):
 
     return resultado
 
+
+def calcular_distancia_km(lat1, lon1, lat2, lon2):
+    from math import radians, sin, cos, sqrt, atan2
+
+    raio_terra = 6371.0
+
+    lat1, lon1 = radians(lat1), radians(lon1)
+    lat2, lon2 = radians(lat2), radians(lon2)
+
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+
+    a = (
+        sin(dlat / 2) ** 2
+        + cos(lat1) * cos(lat2) * sin(dlon / 2) ** 2
+    )
+
+    c = 2 * atan2(sqrt(a), sqrt(1 - a))
+
+    return raio_terra * c
+
+
+def analisar_distancia_estacoes(vertices):
+    estacoes = [
+        (id_v, v) for id_v, v in vertices.items()
+        if v["tipo_no"] == "estacao"
+    ]
+
+    candidatos = []
+
+    for id_v, municipio in vertices.items():
+        if municipio["tipo_no"] != "municipio_candidato":
+            continue
+
+        if not estacoes:
+            continue
+
+        menor_distancia = float("inf")
+        estacao_proxima = None
+
+        for id_estacao, estacao in estacoes:
+            distancia = calcular_distancia_km(
+                municipio["lat"],
+                municipio["lon"],
+                estacao["lat"],
+                estacao["lon"]
+            )
+
+            if distancia < menor_distancia:
+                menor_distancia = distancia
+                estacao_proxima = (id_estacao, estacao)
+
+        id_estacao, estacao = estacao_proxima
+
+        candidatos.append({
+            "codigo_muni": municipio["codigo_muni"],
+            "uf": municipio["uf"],
+            "demanda_rodo_total_ciots": (
+                municipio["demanda_rodo_agro_ciots"]
+                + municipio["demanda_rodo_min_ciots"]
+            ),
+            "id_estacao_proxima": id_estacao,
+            "nome_estacao_proxima": estacao["nome"],
+            "distancia_estacao_km": menor_distancia
+        })
+
+    candidatos.sort(
+        key=lambda m: m["demanda_rodo_total_ciots"],
+        reverse=True
+    )
+
+    return candidatos
+
+
+def analisar_conexoes_candidatas(vertices, arestas):
+    candidatos = {
+        id_v: v
+        for id_v, v in vertices.items()
+        if v["tipo_no"] == "municipio_candidato"
+    }
+
+    # Identifica estações que possuem pelo menos uma
+    # aresta ativa na malha ferroviária
+    estacoes_na_malha = set()
+
+    for aresta in arestas:
+        if aresta["tipo"] == "ativa":
+            estacoes_na_malha.add(aresta["origem"])
+            estacoes_na_malha.add(aresta["destino"])
+
+    resultado = []
+
+    for id_v, municipio in candidatos.items():
+        conexoes = []
+
+        for aresta in arestas:
+            if aresta["tipo"] != "nova":
+                continue
+
+            if aresta["origem"] == id_v:
+                id_vizinho = aresta["destino"]
+            elif aresta["destino"] == id_v:
+                id_vizinho = aresta["origem"]
+            else:
+                continue
+
+            vizinho = vertices[id_vizinho]
+
+            conexoes.append({
+                "id_vizinho": id_vizinho,
+                "nome_vizinho": vizinho["nome"],
+                "tipo_vizinho": vizinho["tipo_no"],
+                "conecta_estacao_ativa": (
+                    vizinho["tipo_no"] == "estacao"
+                    and id_vizinho in estacoes_na_malha
+                ),
+                "distancia_km": aresta["distancia_km"],
+                "custo_milhoes": aresta["custo_milhoes"],
+                "lucro_total_milhoes": aresta["lucro_total_milhoes"]
+            })
+
+        conexoes_diretas = [
+            c for c in conexoes
+            if c["conecta_estacao_ativa"]
+        ]
+
+        resultado.append({
+            "codigo_muni": municipio["codigo_muni"],
+            "uf": municipio["uf"],
+            "demanda_rodo_total_ciots": (
+                municipio["demanda_rodo_agro_ciots"]
+                + municipio["demanda_rodo_min_ciots"]
+            ),
+            "quantidade_conexoes": len(conexoes),
+            "tem_conexao_direta_malha": bool(conexoes_diretas),
+            "menor_custo_direto_milhoes": (
+                min(c["custo_milhoes"] for c in conexoes_diretas)
+                if conexoes_diretas else None
+            ),
+            "conexoes": conexoes
+        })
+
+    resultado.sort(
+        key=lambda m: m["demanda_rodo_total_ciots"],
+        reverse=True
+    )
+
+    return resultado
