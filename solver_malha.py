@@ -548,3 +548,57 @@ def analisar_caminhos_dijkstra(vertices, arestas, estacoes_principais):
     )
 
     return resultado
+
+
+def cruzar_demanda_custo(municipios, caminhos):
+
+    dados_municipais = {
+        municipio["codigo_muni"]: municipio
+        for municipio in municipios
+    }
+
+    resultado = []
+
+    for caminho in caminhos:
+        codigo = caminho["codigo_muni"]
+
+        municipio = dados_municipais.get(codigo)
+
+        if municipio is None:
+            continue
+
+        if not caminho["alcançavel"]:
+            continue
+
+        custo = caminho["custo_milhoes"]
+        demanda = municipio["demanda_rodo_total_ciots"]
+
+        resultado.append({
+            "codigo_muni": codigo,
+            "nome_municipio": caminho["nome_municipio"],
+            "uf": caminho["uf"],
+
+            "demanda_rodo_agro_ciots": municipio[
+                "demanda_rodo_agro_ciots"
+            ],
+            "demanda_rodo_min_ciots": municipio[
+                "demanda_rodo_min_ciots"
+            ],
+            "demanda_rodo_total_ciots": demanda,
+
+            "custo_integracao_milhoes": custo,
+            "distancia_km": caminho["distancia_km"],
+            "quantidade_novas": caminho["quantidade_novas"],
+            "estacao_destino": caminho["nome_estacao_destino"],
+
+            "ciots_por_milhao": (
+                demanda / custo if custo > 0 else 0
+            )
+        })
+
+    resultado.sort(
+        key=lambda m: m["ciots_por_milhao"],
+        reverse=True
+    )
+
+    return resultado
