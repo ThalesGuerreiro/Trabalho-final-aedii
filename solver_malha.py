@@ -145,3 +145,61 @@ def kruskal_expansao(vertices, arestas, orcamento_bilhoes, criterio="roi_total")
         "tempo_ms": round(tempo_ms, 3),
         "selecionadas": selecionadas
     }
+
+def analisar_municipios(vertices):
+    municipios = {}
+
+    for id_v, vertice in vertices.items():
+        codigo = vertice["codigo_muni"]
+
+        if not codigo:
+            continue
+
+        if codigo not in municipios:
+            municipios[codigo] = {
+                "codigo_muni": codigo,
+                "nome_municipio": None,
+                "uf": vertice["uf"],
+                "tem_estacao": False,
+                "eh_porto": False,
+                "demanda_ferr_agro_ton": vertice["demanda_ferr_agro_ton"],
+                "demanda_ferr_min_ton": vertice["demanda_ferr_min_ton"],
+                "demanda_rodo_agro_ciots": vertice["demanda_rodo_agro_ciots"],
+                "demanda_rodo_min_ciots": vertice["demanda_rodo_min_ciots"]
+            }
+
+        municipio = municipios[codigo]
+
+        if vertice["tipo_no"] == "estacao":
+            municipio["tem_estacao"] = True
+
+        if vertice["eh_porto"]:
+            municipio["eh_porto"] = True
+
+        if vertice["tipo_no"] == "municipio_candidato":
+            municipio["nome_municipio"] = vertice["nome"]
+
+    # Calcula a demanda rodoviária total de cada município
+    resultado = []
+
+    for municipio in municipios.values():
+        municipio["demanda_rodo_total_ciots"] = (
+            municipio["demanda_rodo_agro_ciots"]
+            + municipio["demanda_rodo_min_ciots"]
+        )
+
+        municipio["demanda_ferr_total_ton"] = (
+            municipio["demanda_ferr_agro_ton"]
+            + municipio["demanda_ferr_min_ton"]
+        )
+
+        resultado.append(municipio)
+
+    # Ordena pela demanda rodoviária total, em ordem decrescente
+    resultado.sort(
+        key=lambda municipio: municipio["demanda_rodo_total_ciots"],
+        reverse=True
+    )
+
+    return resultado
+
