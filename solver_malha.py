@@ -225,10 +225,16 @@ def calcular_distancia_km(lat1, lon1, lat2, lon2):
     return raio_terra * c
 
 
-def analisar_distancia_estacoes(vertices):
+
+def analisar_distancia_estacoes(vertices, estacoes_principais):
     estacoes = [
         (id_v, v) for id_v, v in vertices.items()
         if v["tipo_no"] == "estacao"
+    ]
+
+    estacoes_malha_principal = [
+        (id_v, vertices[id_v])
+        for id_v in estacoes_principais
     ]
 
     candidatos = []
@@ -237,25 +243,34 @@ def analisar_distancia_estacoes(vertices):
         if municipio["tipo_no"] != "municipio_candidato":
             continue
 
-        if not estacoes:
-            continue
-
         menor_distancia = float("inf")
         estacao_proxima = None
 
         for id_estacao, estacao in estacoes:
             distancia = calcular_distancia_km(
-                municipio["lat"],
-                municipio["lon"],
-                estacao["lat"],
-                estacao["lon"]
+                municipio["lat"], municipio["lon"],
+                estacao["lat"], estacao["lon"]
             )
 
             if distancia < menor_distancia:
                 menor_distancia = distancia
                 estacao_proxima = (id_estacao, estacao)
 
+        menor_distancia_principal = float("inf")
+        estacao_principal_proxima = None
+
+        for id_estacao, estacao in estacoes_malha_principal:
+            distancia = calcular_distancia_km(
+                municipio["lat"], municipio["lon"],
+                estacao["lat"], estacao["lon"]
+            )
+
+            if distancia < menor_distancia_principal:
+                menor_distancia_principal = distancia
+                estacao_principal_proxima = (id_estacao, estacao)
+
         id_estacao, estacao = estacao_proxima
+        id_principal, estacao_principal = estacao_principal_proxima
 
         candidatos.append({
             "codigo_muni": municipio["codigo_muni"],
@@ -266,7 +281,10 @@ def analisar_distancia_estacoes(vertices):
             ),
             "id_estacao_proxima": id_estacao,
             "nome_estacao_proxima": estacao["nome"],
-            "distancia_estacao_km": menor_distancia
+            "distancia_estacao_km": menor_distancia,
+            "id_estacao_malha_principal": id_principal,
+            "nome_estacao_malha_principal": estacao_principal["nome"],
+            "distancia_malha_principal_km": menor_distancia_principal
         })
 
     candidatos.sort(
@@ -277,21 +295,13 @@ def analisar_distancia_estacoes(vertices):
     return candidatos
 
 
-def analisar_conexoes_candidatas(vertices, arestas):
+
+def analisar_conexoes_candidatas(vertices, arestas, estacoes_principais):
     candidatos = {
         id_v: v
         for id_v, v in vertices.items()
         if v["tipo_no"] == "municipio_candidato"
     }
-
-    # Identifica estações que possuem pelo menos uma
-    # aresta ativa na malha ferroviária
-    estacoes_na_malha = set()
-
-    for aresta in arestas:
-        if aresta["tipo"] == "ativa":
-            estacoes_na_malha.add(aresta["origem"])
-            estacoes_na_malha.add(aresta["destino"])
 
     resultado = []
 
@@ -317,16 +327,18 @@ def analisar_conexoes_candidatas(vertices, arestas):
                 "tipo_vizinho": vizinho["tipo_no"],
                 "conecta_estacao_ativa": (
                     vizinho["tipo_no"] == "estacao"
-                    and id_vizinho in estacoes_na_malha
+                ),
+                "conecta_malha_principal": (
+                    id_vizinho in estacoes_principais
                 ),
                 "distancia_km": aresta["distancia_km"],
                 "custo_milhoes": aresta["custo_milhoes"],
                 "lucro_total_milhoes": aresta["lucro_total_milhoes"]
             })
 
-        conexoes_diretas = [
+        conexoes_principais = [
             c for c in conexoes
-            if c["conecta_estacao_ativa"]
+            if c["conecta_malha_principal"]
         ]
 
         resultado.append({
@@ -337,10 +349,13 @@ def analisar_conexoes_candidatas(vertices, arestas):
                 + municipio["demanda_rodo_min_ciots"]
             ),
             "quantidade_conexoes": len(conexoes),
-            "tem_conexao_direta_malha": bool(conexoes_diretas),
-            "menor_custo_direto_milhoes": (
-                min(c["custo_milhoes"] for c in conexoes_diretas)
-                if conexoes_diretas else None
+            "tem_conexao_direta_malha_principal": bool(conexoes_principais),
+            "menor_custo_direto_malha_principal_milhoes": (
+                min(
+                    c["custo_milhoes"]
+                    for c in conexoes_principais
+                )
+                if conexoes_principais else None
             ),
             "conexoes": conexoes
         })
@@ -351,3 +366,24 @@ def analisar_conexoes_candidatas(vertices, arestas):
     )
 
     return resultado
+
+def obter_estacoes_maior_componente(vertices, arestas):
+    arestas_ativas = [
+        aresta for aresta in arestas
+        if aresta["tipo"] == "ativa"
+    ]
+
+    grafo = construir_grafo(vertices, arestas_ativas)
+    componentes = encontrar_componentes(grafo)
+
+    if not componentes:
+        return set()
+
+    maior_componente = componentes[0]
+
+    estacoes = {
+        id_v for id_v in maior_componente
+        if vertices[id_v]["tipo_no"] == "estacao"
+    }
+
+    return estacoes
