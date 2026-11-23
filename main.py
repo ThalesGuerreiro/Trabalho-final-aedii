@@ -4,10 +4,12 @@ import solver_malha
 import visualizacao
 
 
-def carregar_dados(caminho_vertices="vertices.csv", caminho_arestas="arestas.csv"):
-    if not os.path.exists(caminho_vertices) and os.path.exists("dados/vertices.csv"):
-        caminho_vertices = "dados/vertices.csv"
-        caminho_arestas = "dados/arestas.csv"
+PASTA_PROJETO = os.path.dirname(os.path.abspath(__file__))
+PASTA_DADOS = os.path.join(PASTA_PROJETO, "dados")
+
+def carregar_dados():
+    caminho_vertices = os.path.join(PASTA_DADOS, "vertices.csv")
+    caminho_arestas = os.path.join(PASTA_DADOS, "arestas.csv")
 
     vertices = {}
 
@@ -179,7 +181,7 @@ def main():
         caminhos
     )
 
-    print("\n--- MUNICÍPIOS COM MAIOR DEMANDA LOGÍSTICA ---")
+    print("\n--- MUNICÍPIOS COM MAIOR RELAÇÃO DEMANDA/CUSTO ---")
 
     for municipio in cruzamento[:10]:
         print(
