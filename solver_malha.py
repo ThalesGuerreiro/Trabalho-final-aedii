@@ -1,6 +1,7 @@
 from collections import deque
 import time
 import heapq
+from statistics import median
 
 def construir_grafo(vertices, arestas_ativas):
     grafo = {i: [] for i in vertices}
@@ -602,3 +603,63 @@ def cruzar_demanda_custo(municipios, caminhos):
     )
 
     return resultado
+
+
+def classificar_municipios(cruzamento):
+    
+    #Classifica municípios conforme demanda logística custo de integração, utilizando as medianas
+    if not cruzamento:
+        return None
+
+    mediana_demanda = median(
+        m["demanda_rodo_total_ciots"] for m in cruzamento
+    )
+
+    mediana_custo = median(
+        m["custo_integracao_milhoes"] for m in cruzamento
+    )
+
+    grupos = {
+        "alta_demanda_baixo_custo": [],
+        "alta_demanda_alto_custo": [],
+        "baixa_demanda_baixo_custo": [],
+        "baixa_demanda_alto_custo": []
+    }
+
+    for municipio in cruzamento:
+        demanda_alta = (
+            municipio["demanda_rodo_total_ciots"] >= mediana_demanda
+        )
+
+        custo_baixo = (
+            municipio["custo_integracao_milhoes"] <= mediana_custo
+        )
+
+        if demanda_alta and custo_baixo:
+            grupo = "alta_demanda_baixo_custo"
+
+        elif demanda_alta and not custo_baixo:
+            grupo = "alta_demanda_alto_custo"
+
+        elif not demanda_alta and custo_baixo:
+            grupo = "baixa_demanda_baixo_custo"
+
+        else:
+            grupo = "baixa_demanda_alto_custo"
+
+        dados = municipio.copy()
+        dados["classificacao"] = grupo
+
+        grupos[grupo].append(dados)
+
+    for grupo in grupos.values():
+        grupo.sort(
+            key=lambda m: m["ciots_por_milhao"],
+            reverse=True
+        )
+
+    return {
+        "mediana_demanda": mediana_demanda,
+        "mediana_custo": mediana_custo,
+        "grupos": grupos
+    }
