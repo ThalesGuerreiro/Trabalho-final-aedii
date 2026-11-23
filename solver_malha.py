@@ -1,5 +1,6 @@
 from collections import deque
 import time
+import heapq
 
 def construir_grafo(vertices, arestas_ativas):
     grafo = {i: [] for i in vertices}
@@ -387,3 +388,163 @@ def obter_estacoes_maior_componente(vertices, arestas):
     }
 
     return estacoes
+
+
+def construir_grafo_expansao(vertices, arestas):
+    """
+    Cria um grafo ponderado para a busca de caminhos de expansão.
+
+    Arestas ativas possuem custo zero.
+    Arestas novas possuem o custo de construção.
+    Arestas desativadas são ignoradas.
+    """
+    grafo = {id_v: [] for id_v in vertices}
+
+    for aresta in arestas:
+        if aresta["tipo"] not in ("ativa", "nova"):
+            continue
+
+        u = aresta["origem"]
+        v = aresta["destino"]
+
+        if u not in grafo or v not in grafo:
+            continue
+
+        custo = 0.0 if aresta["tipo"] == "ativa" else aresta["custo_milhoes"]
+
+        grafo[u].append((v, custo, aresta))
+        grafo[v].append((u, custo, aresta))
+
+    return grafo
+
+
+def dijkstra_ate_malha_principal(grafo, origem, estacoes_principais):
+    #Encontra o caminho de menor custo entre a origem e qualquer estação pertencente à maior componente da malha ativa
+    distancias = {vertice: float("inf") for vertice in grafo}
+    predecessores = {}
+
+    distancias[origem] = 0.0
+    fila = [(0.0, origem)]
+
+    destino_encontrado = None
+
+    while fila:
+        custo_atual, atual = heapq.heappop(fila)
+
+        if custo_atual > distancias[atual]:
+            continue
+
+        if atual in estacoes_principais:
+            destino_encontrado = atual
+            break
+
+        for vizinho, custo_aresta, aresta in grafo[atual]:
+            novo_custo = custo_atual + custo_aresta
+
+            if novo_custo < distancias[vizinho]:
+                distancias[vizinho] = novo_custo
+                predecessores[vizinho] = (atual, aresta)
+                heapq.heappush(fila, (novo_custo, vizinho))
+
+    if destino_encontrado is None:
+        return None
+
+    caminho = [destino_encontrado]
+    arestas_caminho = []
+
+    atual = destino_encontrado
+
+    while atual != origem:
+        anterior, aresta = predecessores[atual]
+        arestas_caminho.append(aresta)
+        caminho.append(anterior)
+        atual = anterior
+
+    caminho.reverse()
+    arestas_caminho.reverse()
+
+    distancia_total = sum(
+        aresta["distancia_km"] for aresta in arestas_caminho
+    )
+
+    quantidade_novas = sum(
+        1 for aresta in arestas_caminho
+        if aresta["tipo"] == "nova"
+    )
+
+    return {
+        "id_estacao_destino": destino_encontrado,
+        "custo_milhoes": distancias[destino_encontrado],
+        "distancia_km": distancia_total,
+        "quantidade_novas": quantidade_novas,
+        "caminho": caminho,
+        "arestas_caminho": arestas_caminho
+    }
+
+
+def analisar_caminhos_dijkstra(vertices, arestas, estacoes_principais):
+    #Analisa o caminho de menor custo de cada município candidato até a maior componente da malha ferroviária ativa
+    grafo = construir_grafo_expansao(vertices, arestas)
+
+    resultado = []
+
+    for id_v, municipio in vertices.items():
+        if municipio["tipo_no"] != "municipio_candidato":
+            continue
+
+        caminho = dijkstra_ate_malha_principal(
+            grafo,
+            id_v,
+            estacoes_principais
+        )
+
+        registro = {
+            "id_municipio": id_v,
+            "codigo_muni": municipio["codigo_muni"],
+            "nome_municipio": municipio["nome"],
+            "uf": municipio["uf"],
+            "demanda_rodo_total_ciots": (
+                municipio["demanda_rodo_agro_ciots"]
+                + municipio["demanda_rodo_min_ciots"]
+            )
+        }
+
+        if caminho is None:
+            registro.update({
+                "alcançavel": False,
+                "custo_milhoes": None,
+                "distancia_km": None,
+                "quantidade_novas": None,
+                "nome_estacao_destino": None,
+                "caminho": []
+            })
+        else:
+            registro.update({
+                "alcançavel": True,
+                "custo_milhoes": caminho["custo_milhoes"],
+                "distancia_km": caminho["distancia_km"],
+                "quantidade_novas": caminho["quantidade_novas"],
+                "nome_estacao_destino": vertices[
+                    caminho["id_estacao_destino"]
+                ]["nome"],
+                "caminho": [
+                    {
+                        "id": id_no,
+                        "nome": vertices[id_no]["nome"],
+                        "tipo_no": vertices[id_no]["tipo_no"]
+                    }
+                    for id_no in caminho["caminho"]
+                ],
+                "arestas_caminho": caminho["arestas_caminho"]
+            })
+
+        resultado.append(registro)
+
+    resultado.sort(
+        key=lambda m: (
+            m["custo_milhoes"] is None,
+            m["custo_milhoes"] if m["custo_milhoes"] is not None else float("inf")
+        )
+    )
+
+    return resultado
